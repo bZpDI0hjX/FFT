@@ -3,6 +3,10 @@ Fast Fourier Transform for Programming Assessment 1.
 
 Build using g++ .\main.cpp -std=c++23 -Wall -Wextra -o FFT.exe
 
-Run FFT.exe
+Run "FFT.exe test algorithm n"
 
-By default the input size is 2^5. Add a number after FFT.exe to run an input of size 2^n.
+test - tells program to run tests (doesn't do anything otherwise)
+
+algorithm - choose either fft or dft
+
+n - enter the size of the input, where the input is 2^n
