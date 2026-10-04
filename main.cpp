@@ -139,7 +139,7 @@ int main(int argc, char* argv[]) {
     // std::ignore = argc;
     // std::ignore = argv;
     std::cout << "FFT!\n";
-    int inputLen {10};
+    int inputLen {5};
     if (argc > 1) {
         inputLen = std::stoi((std::string)argv[1]);
     }
