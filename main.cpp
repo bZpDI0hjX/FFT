@@ -2,10 +2,18 @@
 #include <vector>
 #include <cmath>
 #include <numbers>
+#include <iomanip>
 
-void prtVec(std::vector<double> vec) {
+void prtVec1D(std::vector<double> vec) {
     for (double i : vec) {
         std::cout << i << ',';
+    }
+    std::cout << '\n';
+}
+
+void prtVec2D(std::vector<std::vector<double>> vec) {
+    for (std::vector<double> i : vec) {
+        std::cout << i[0] << " , " << i[1] << '\n';
     }
     std::cout << '\n';
 }
@@ -43,7 +51,7 @@ std::vector<double> cmbnFreq(std::vector<double> vec1, std::vector<double> vec2)
     return out;
 }
 
-std::vector<double> wrap(std::vector<double> inp, double speed) {
+std::vector<double> dctWrap(std::vector<double> inp, double speed) {
     std::vector<double> pos (inp.size());
     if (speed == 0) {
         for (int i = 0; i < (int)inp.size() ; i++) {
@@ -57,13 +65,74 @@ std::vector<double> wrap(std::vector<double> inp, double speed) {
     return pos;
 }
 
-double avg(std::vector<double> vec) {
+std::vector<std::vector<double>> dftWrap(std::vector<double> inp, double speed) {
+
+    std::vector<std::vector<double>> pos (inp.size(), std::vector<double> (2));
+
+    if (speed == 0) {
+        for (int i = 0; i < (int)inp.size() ; i++) {
+            pos[i][0] = inp[i];
+        }
+    } else {    
+        for (int i = 0; i < (int)inp.size() ; i++) {
+            pos[i][0] = inp[i] * std::cos(((2 * speed) - 1) * (double)i * std::numbers::pi / inp.size());
+            pos[i][1] = inp[i] * std::sin(((2 * speed) - 1) * (double)i * std::numbers::pi / inp.size());
+        }
+    }
+    return pos;
+}
+
+double avg1D(std::vector<double> vec) {
     double average {0};
-    for (int i : vec) {
+    for (double i : vec) {
         average += i;
     }
-    average = average/vec.size();
+    // average = average/vec.size();
     return average;
+}
+std::vector<double> avg2D(std::vector<std::vector<double>> vec) {
+    std::vector<double> average {0,0};
+    for (std::vector<double> i : vec) {
+        average[0] += i[0];
+        average[1] += i[1];
+    }
+    average[0] = average[0]/vec.size();
+    average[1] = average[1]/vec.size();
+    return average;
+}
+
+std::vector<std::vector<double>> fft(std::vector<std::vector<double>> inp) {
+    int n {(int)inp.size()};
+
+    if (n <= 1) {return inp;}
+
+    std::vector<std::vector<double>> out (inp.size(), std::vector<double> (2));
+
+    std::vector<std::vector<double>> even (n/2, std::vector<double> (2)); // [0,2,4,...]
+    std::vector<std::vector<double>> odd (n/2, std::vector<double> (2));; // [1,3,5,...]
+    for (int i {0} ; i < n/2 ; i++) {
+        even[i] = inp[2*i];
+        odd[i] = inp[2*i+1];
+    }
+    // prtVec2D(even);
+    // prtVec2D(odd);
+    even = fft(even);
+    odd = fft(odd);
+
+    std::vector<double> rotFac {0, 0};
+    std::vector<double> rotOdd {0, 0};
+    
+    for (int i {0} ; i < n/2 ; i++) {
+        rotFac = {std::cos(2 * i * std::numbers::pi / n), -std::sin(2 * i * std::numbers::pi / n)};
+        rotOdd[0] = (odd[i][0] * rotFac[0]) - (odd[i][1] * rotFac[1]); // minus due to multiplying two imaginary #
+        rotOdd[1] = (odd[i][0] * rotFac[1]) + (odd[i][1] * rotFac[0]);
+        out[i][0] = even[i][0] + rotOdd[0];
+        out[i][1] = even[i][1] + rotOdd[1];
+        out[i+(n/2)][0] = even[i][0] - rotOdd[0];
+        out[i+(n/2)][1] = even[i][1] - rotOdd[1];
+    }
+
+    return {out};
 }
 
 int main(int argc, char* argv[]) {
@@ -84,27 +153,50 @@ int main(int argc, char* argv[]) {
     // std::vector<double> input {makeFreq(100, 3, 10)};
     // std::vector<double> input {makeFreqs(1000, {11,349,370,440}, 100)};
     // std::vector<double> input {10,10,10,10,10,-10,-10,-10,-10,-10,10,10,10,10,10,-10,-10,-10,-10,-10,0};
-    std::vector<double> input {makeFreq(inputLen,1,10)};
-  
-    std::vector<double> pos (input.size());
+    std::vector<double> input {makeFreq(std::pow(2,inputLen),2,10)};
 
-    pos = wrap(input, 0);
+    std::cout << "len: " << input.size() << '\n';
+    inputLen = (int)input.size();
+    // std::vector<double> input {makeFreqs(64, {5,9}, 10)};
+    
+    std::vector<std::vector<double>> input2D {input.size(), std::vector<double> (2)};
 
-    // if (rotSpd != -1) {
-    //     pos = wrap(input, rotSpd);
-    //     std::cout << "avg for " << rotSpd << ": " << avg(pos) << '\n';
+    for (int i = 0 ; i < inputLen ; i++) {
+        input2D[i][0] = input[i];
+    }
+
+    // std::vector<double> pos (input.size());
+    std::vector<std::vector<double>> pos (inputLen, std::vector<double> (2));
+    
+    // prtVec2D(input2D);
+
+    // std::vector<std::vector<double>> fftResult {fft(input2D)};
+    std::cout << std::fixed << std::setprecision(1);
+    // prtVec2D(fftResult);
+    
+    // double peak {};
+    // int peakIndex {};
+    // for (int i {0} ; i < inputLen ; i++) {
+    //     if (fftResult[i][1] < peak) {
+    //         peak = fftResult[i][1];
+    //         peakIndex = i;
+    //     }
     // }
-    int max {};
+    // std::cout << peakIndex << ": " << peak << '\n';
+
+    double max {};
     int maxIndex {};
     int currAvg {};
-    for (int rotSpd {0} ; rotSpd <= std::floor(input.size()/2) ; rotSpd++) {
-        pos = wrap(input, rotSpd);
-        currAvg = std::abs(avg(pos));
+    for (int rotSpd {0} ; rotSpd <= std::floor(input.size()) ; rotSpd++) {
+        pos = dftWrap(input, rotSpd);
+        // prtVec2D(pos);
+        currAvg = std::abs(avg2D(pos)[0]);
         if (currAvg > max) {
             maxIndex = rotSpd;
             max = currAvg;
         }
-        // std::cout << rotSpd << "avg: " << std::abs(avg(pos)) << '\n';
+        // std::cout << avg2D(pos)[0] << " , " << avg2D(pos)[1] << '\n';
+        // std::cout << rotSpd << "avg: " << std::abs(avg2D(pos)[0]) << " , " << std::abs(avg2D(pos)[1]) << '\n';
     }
     std::cout << maxIndex << ": " << max << '\n';
     
